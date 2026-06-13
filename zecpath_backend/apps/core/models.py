@@ -1,0 +1,123 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+from .managers import UserManager
+
+
+class User(AbstractUser):
+
+    ADMIN = "ADMIN"
+    EMPLOYER = "EMPLOYER"
+    CANDIDATE = "CANDIDATE"
+
+    ROLE_CHOICES = (
+        (ADMIN, "Admin"),
+        (EMPLOYER, "Employer"),
+        (CANDIDATE, "Candidate"),
+    )
+
+    username = None
+
+    email = models.EmailField(unique=True)
+
+    phone = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default=CANDIDATE
+    )
+
+    is_verified = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
+
+
+class Employer(models.Model):
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+
+    company_name = models.CharField(
+        max_length=100
+    )
+
+    def __str__(self):
+        return self.company_name
+
+
+class Candidate(models.Model):
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+
+    skills = models.TextField()
+
+    def __str__(self):
+        return self.user.email
+
+
+class Job(models.Model):
+
+    employer = models.ForeignKey(
+        Employer,
+        on_delete=models.CASCADE,
+        related_name="jobs",
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100
+    )
+
+    location = models.CharField(
+        max_length=100
+    )
+
+    def __str__(self):
+        return self.title
+
+
+class Application(models.Model):
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="applications"
+    )
+
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="applications"
+    )
+
+    status = models.CharField(
+        max_length=50
+    )
+
+    def __str__(self):
+        return f"{self.candidate} - {self.job}"
