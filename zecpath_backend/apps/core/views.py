@@ -4,6 +4,19 @@ from rest_framework import status
 
 from .models import Job
 from .serializers import JobSerializer
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
+
+from rest_framework.permissions import IsAuthenticated
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .serializers import (
+    JobSerializer,
+    SignupSerializer
+)
+
+User = get_user_model()
 
 
 class JobListAPI(APIView):
@@ -38,4 +51,67 @@ class UserTestAPI(APIView):
         return Response({
             "username": "test_user",
             "message": "DRF API Working"
+        })
+class SignupAPI(APIView):
+
+    def post(self, request):
+
+        serializer = SignupSerializer(
+            data=request.data
+        )
+
+        if serializer.is_valid():
+
+            user = serializer.save()
+
+            return Response(
+                {
+                    "message": "User registered successfully",
+                    "email": user.email
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class LoginAPI(APIView):
+
+    def post(self, request):
+
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        user = authenticate(
+            request,
+            email=email,
+            password=password
+        )
+
+        if user is None:
+            return Response(
+                {"error": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        })
+
+
+class ProtectedAPI(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        return Response({
+            "message": "Protected API Access Granted",
+            "user": request.user.email
         })
