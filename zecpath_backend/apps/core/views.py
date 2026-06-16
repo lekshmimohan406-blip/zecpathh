@@ -8,6 +8,12 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+from .permissions import (
+    IsEmployer,
+    IsCandidate,
+    IsAdmin
+)
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -29,11 +35,19 @@ class JobListAPI(APIView):
 
 class JobCreateAPI(APIView):
 
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
     def post(self, request):
-        serializer = JobSerializer(data=request.data)
+        serializer = JobSerializer(
+            data=request.data
+        )
 
         if serializer.is_valid():
             serializer.save()
+
             return Response(
                 serializer.data,
                 status=status.HTTP_201_CREATED
@@ -114,4 +128,30 @@ class ProtectedAPI(APIView):
         return Response({
             "message": "Protected API Access Granted",
             "user": request.user.email
+        })
+class AdminDashboardAPI(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def get(self, request):
+
+        return Response({
+            "message": "Admin Access Granted"
+        })
+
+
+class CandidateDashboardAPI(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def get(self, request):
+
+        return Response({
+            "message": "Candidate Access Granted"
         })
