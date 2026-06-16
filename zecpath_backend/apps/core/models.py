@@ -62,6 +62,24 @@ class Employer(models.Model):
         max_length=100
     )
 
+    company_domain = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    company_size = models.IntegerField(
+        default=0
+    )
+
+    is_verified = models.BooleanField(
+        default=False
+    )
+
+    is_deleted = models.BooleanField(
+        default=False
+    )
+
     def __str__(self):
         return self.company_name
 
@@ -74,6 +92,26 @@ class Candidate(models.Model):
     )
 
     skills = models.TextField()
+
+    education = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    experience = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    expected_salary = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    is_deleted = models.BooleanField(
+        default=False
+    )
 
     def __str__(self):
         return self.user.email

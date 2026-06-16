@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Job
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
+from .models import (Job,Employer,Candidate)
 
 User = get_user_model()
 
@@ -33,3 +33,17 @@ class SignupSerializer(serializers.ModelSerializer):
         user.save()
 
         return user
+    
+
+class EmployerSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Employer
+        fields = "__all__"
+
+
+class CandidateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Candidate
+        fields = "__all__"

@@ -1,7 +1,7 @@
 from django.urls import path
 # from .views import JobListAPI, JobCreateAPI, UserTestAPI
 from .views import (JobListAPI,JobCreateAPI,UserTestAPI,SignupAPI,LoginAPI, ProtectedAPI,AdminDashboardAPI,
-CandidateDashboardAPI,
+CandidateDashboardAPI,EmployerProfileAPI,CandidateProfileAPI,
 )
 urlpatterns = [
     path('jobs/', JobListAPI.as_view()),
@@ -20,5 +20,15 @@ urlpatterns = [
 path(
     "candidate-dashboard/",
     CandidateDashboardAPI.as_view()
+),
+
+path(
+    "employer-profile/",
+    EmployerProfileAPI.as_view()
+),
+
+path(
+    "candidate-profile/",
+    CandidateProfileAPI.as_view()
 ),
 ]

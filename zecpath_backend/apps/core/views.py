@@ -1,26 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-from .models import Job
-from .serializers import JobSerializer
+from .models import Job,Employer,Candidate
+from .serializers import JobSerializer,SignupSerializer,EmployerSerializer,CandidateSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from rest_framework.permissions import IsAuthenticated
 
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.permissions import IsAuthenticated
 from .permissions import (
     IsEmployer,
     IsCandidate,
     IsAdmin
 )
-
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from .serializers import (
-    JobSerializer,
-    SignupSerializer
-)
 
 User = get_user_model()
 
@@ -154,4 +146,94 @@ class CandidateDashboardAPI(APIView):
 
         return Response({
             "message": "Candidate Access Granted"
+        })
+    
+
+class EmployerProfileAPI(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def get(self, request):
+        employer = Employer.objects.get(user=request.user)
+        serializer = EmployerSerializer(employer)
+        return Response(serializer.data)
+
+    def put(self, request):
+        employer = Employer.objects.get(user=request.user)
+
+        serializer = EmployerSerializer(
+            employer,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def delete(self, request):
+        employer = Employer.objects.get(user=request.user)
+        employer.is_deleted = True
+        employer.save()
+
+        return Response({
+            "message": "Profile deleted successfully"
+        })
+    
+
+class CandidateProfileAPI(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def get(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        serializer = CandidateSerializer(
+            candidate
+        )
+
+        return Response(serializer.data)
+
+    def put(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        serializer = CandidateSerializer(
+            candidate,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    def delete(self, request):
+        candidate = Candidate.objects.get(user=request.user)
+        candidate.is_deleted = True
+        candidate.save()
+
+        return Response({
+            "message": "Profile deleted successfully"
         })
