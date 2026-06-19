@@ -109,12 +109,15 @@ class Candidate(models.Model):
         default=0
     )
 
+    resume = models.FileField(
+        upload_to="resumes/",
+        blank=True,
+        null=True
+    )
+
     is_deleted = models.BooleanField(
         default=False
     )
-
-    def __str__(self):
-        return self.user.email
 
 
 class Job(models.Model):

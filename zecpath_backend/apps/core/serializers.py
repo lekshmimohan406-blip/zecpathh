@@ -47,3 +47,38 @@ class CandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Candidate
         fields = "__all__"
+
+
+class ResumeUploadSerializer(
+    serializers.ModelSerializer
+):
+
+    class Meta:
+        model = Candidate
+        fields = ["resume"]
+
+    def validate_resume(self, value):
+
+        allowed = [
+            ".pdf",
+            ".doc",
+            ".docx"
+        ]
+
+        import os
+
+        ext = os.path.splitext(
+            value.name
+        )[1].lower()
+
+        if ext not in allowed:
+            raise serializers.ValidationError(
+                "Only PDF, DOC, DOCX allowed"
+            )
+
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError(
+                "File size must be under 5MB"
+            )
+
+        return value

@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Job,Employer,Candidate
-from .serializers import JobSerializer,SignupSerializer,EmployerSerializer,CandidateSerializer
+from .serializers import JobSerializer,SignupSerializer,EmployerSerializer,CandidateSerializer,ResumeUploadSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import IsAuthenticated
@@ -116,10 +116,10 @@ class ProtectedAPI(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         return Response({
-            "message": "Protected API Access Granted",
-            "user": request.user.email
+            "user_id": request.user.id,
+            "email": request.user.email,
+            "is_authenticated": request.user.is_authenticated,
         })
 class AdminDashboardAPI(APIView):
 
@@ -237,3 +237,32 @@ class CandidateProfileAPI(APIView):
         return Response({
             "message": "Profile deleted successfully"
         })
+    
+class ResumeUploadAPI(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def put(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        serializer = ResumeUploadSerializer(
+            candidate,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
