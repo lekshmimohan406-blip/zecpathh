@@ -1,6 +1,11 @@
 from django.contrib import admin
 from .models import User
+from .models import Application
+from .models import ATSScore
 
+admin.site.register(ATSScore)
+
+admin.site.register(Application)
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):

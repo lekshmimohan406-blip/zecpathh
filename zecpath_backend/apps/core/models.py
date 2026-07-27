@@ -31,8 +31,9 @@ class User(AbstractUser):
         choices=ROLE_CHOICES,
         default=CANDIDATE
     )
-
+    is_blocked = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    is_flagged = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -120,35 +121,86 @@ class Candidate(models.Model):
     )
 
 
+
 class Job(models.Model):
+
+    JOB_TYPE_CHOICES = (
+        ("full_time", "Full Time"),
+        ("part_time", "Part Time"),
+        ("internship", "Internship"),
+        ("contract", "Contract"),
+    )
+
+    STATUS_CHOICES = (
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("closed", "Closed"),
+    )
 
     employer = models.ForeignKey(
         Employer,
         on_delete=models.CASCADE,
         related_name="jobs",
         null=True,
-        blank=True
+        blank=True,
     )
 
     title = models.CharField(
-        max_length=100
+        max_length=150,
+        db_index=True
     )
 
-    location = models.CharField(
-        max_length=100
+    description = models.TextField()
+
+    skills = models.CharField(
+        max_length=500,
+        db_index=True
     )
+
+    experience = models.PositiveIntegerField(default=0)
+
+    salary_min = models.PositiveIntegerField(null=True, blank=True)
+    salary_max = models.PositiveIntegerField(null=True, blank=True)
+
+    location = models.CharField(
+        max_length=150,
+        db_index=True
+    )
+
+    job_type = models.CharField(
+        max_length=20,
+        choices=JOB_TYPE_CHOICES,
+        default="full_time",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="active",
+        db_index=True
+    )
+
+    is_featured = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
-
-
 class Application(models.Model):
 
-    job = models.ForeignKey(
-        Job,
-        on_delete=models.CASCADE,
-        related_name="applications"
-    )
+    STATUS_CHOICES = (
+    ("applied", "Applied"),
+    ("shortlisted", "Shortlisted"),
+    ("interview_scheduled", "Interview Scheduled"),
+    ("rejected", "Rejected"),
+    ("selected", "Selected"),
+)
 
     candidate = models.ForeignKey(
         Candidate,
@@ -156,9 +208,154 @@ class Application(models.Model):
         related_name="applications"
     )
 
-    status = models.CharField(
-        max_length=50
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="applications"
     )
 
+    resume_snapshot = models.FileField(
+        upload_to="application_resumes/",
+        blank=True,
+        null=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="applied"
+    )
+
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+    status_updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("candidate", "job")
+
     def __str__(self):
-        return f"{self.candidate} - {self.job}"
+        return f"{self.candidate.user.email} - {self.job.title}"
+    
+
+class ApplicationStatusLog(models.Model):
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name="status_logs"
+    )
+
+    old_status = models.CharField(max_length=30)
+
+    new_status = models.CharField(max_length=30)
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return (
+            f"{self.application.id}: "
+            f"{self.old_status} → {self.new_status}"
+        )
+    
+[
+    {
+        "id": 1,
+        "job": 4,
+        "job_title": "Senior Python Django Developer",
+        "company_name": "ABC Technologies",
+        "resume_snapshot": "/media/resumes/Lekshmi.Mohan_Resume.pdf",
+        "status": "rejected",
+        "applied_at": "2026-06-24T07:44:32.170385Z"
+    }
+]
+
+
+class SavedJob(models.Model):
+
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="saved_jobs"
+    )
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="saved_by"
+    )
+
+    saved_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        unique_together = ("candidate", "job")
+
+    def __str__(self):
+        return f"{self.candidate.user.email} - {self.job.title}"
+    
+
+
+class AuditLog(models.Model):
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="audit_logs"
+    )
+    action = models.CharField(max_length=255)
+    target = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin.email} - {self.action}"
+    
+class AuditLog(models.Model):
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="audit_logs"
+    )
+    action = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin.email} - {self.action}"
+    
+class ATSScore(models.Model):
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE
+    )
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE
+    )
+
+    score = models.FloatField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.candidate} - {self.job.title} - {self.score}%"
+    
+class NotificationLog(models.Model):
+
+    email = models.EmailField()
+
+    subject = models.CharField(max_length=255)
+
+    message = models.TextField()
+
+    status = models.CharField(max_length=20, default="sent")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+    
